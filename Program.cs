@@ -11,6 +11,7 @@ using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
+using System.Runtime.InteropServices;
 
 namespace TGInstaAudioToText
 {
@@ -239,7 +240,8 @@ namespace TGInstaAudioToText
 
         static void ConvertToWav(string SourceFileName, string TargetFileName)
         {
-            ProcessStartInfo PSI = new ProcessStartInfo(Path.Combine(Sys.GetAppPath(), "ffmpeg"), $"-i \"{SourceFileName}\" -acodec pcm_s16le -ac 1 -ar 16000 -y \"{TargetFileName}\"");
+            //ProcessStartInfo PSI = new ProcessStartInfo(Path.Combine(Sys.GetAppPath(), "ffmpeg"), $"-i \"{SourceFileName}\" -acodec pcm_s16le -ac 1 -ar 16000 -y \"{TargetFileName}\"");
+            ProcessStartInfo PSI = new ProcessStartInfo("ffmpeg", $"-i \"{SourceFileName}\" -acodec pcm_s16le -ac 1 -ar 16000 -y \"{TargetFileName}\"");
             PSI.UseShellExecute = false;
             PSI.RedirectStandardError = true;
             PSI.RedirectStandardOutput = true;
@@ -377,10 +379,11 @@ namespace TGInstaAudioToText
                                                                 string Text = SpeechToText(model, WavFileName);
                                                                 Output.WriteLine("OK", Output.TextSuccess);
                                                                 Output.WriteLine($"Text: {Text}", Output.TextInfo);
-                                                                //await client.Messages_EditMessage(updates.users[msg.Peer.ID].ToInputPeer(), msg.ID, $"🤖 Бот распознал текст:\r\n\r\n{Text}");
-                                                                //await client.Messages_EditMessage(TL.InputPeer.Self, OutMsg.ID, $"🤖 Бот распознал текст:\r\n\r\n{Text}");
                                                                 await client.Messages_EditMessage(inputPeer, OutMsg.ID, $"🤖 Бот распознал текст:\r\n\r\n{Text}");
                                                                 await client.Messages_MarkDialogUnread(inputPeer);
+
+                                                                //File.Delete(tmpFileName);
+                                                                //File.Delete(WavFileName);
                                                             }
                                                             catch (Exception ex)
                                                             {
@@ -390,7 +393,6 @@ namespace TGInstaAudioToText
                                                                     await client.Messages_EditMessage(inputPeer, OutMsg.ID, $"🙁 Бот не смог не распознать текст ");
                                                                 }
                                                                 catch { }
-                                                                //return;
                                                             }
                                                         }
 
@@ -475,7 +477,41 @@ namespace TGInstaAudioToText
             //Console.WriteLine($"We are logged-in as {client.User} (id {client.User.id})");
         }
 
+        static void CheckFFmpeg()
+        {
+            ProcessStartInfo PSI = new ProcessStartInfo("ffmpeg", $"-version");
+            PSI.UseShellExecute = false;
+            PSI.RedirectStandardError = true;
+            PSI.RedirectStandardOutput = true;
 
+            var P = Process.Start(PSI);
+
+            new Thread((args) =>
+            {
+                try
+                {
+                    while (!P.StandardOutput.EndOfStream)
+                    {
+                        string V = P.StandardOutput.ReadLine();
+                    }
+                }
+                catch { }
+            }).Start();
+
+            new Thread((args) =>
+            {
+                try
+                {
+                    while (!P.StandardError.EndOfStream)
+                    {
+                        string V = P.StandardOutput.ReadLine();
+                    }
+                }
+                catch { }
+            }).Start();
+
+            P.WaitForExit();
+        }
 
         static void Main(string[] args)
         {
@@ -485,12 +521,41 @@ namespace TGInstaAudioToText
 
             WTelegram.Helpers.Log = (lvl, str) => { };
             Vosk.Vosk.SetLogLevel(-1);
+
+            try
+            {
+                Output.Write("Checking FFMpeg... ", Output.TextDefault);
+                CheckFFmpeg();
+                Output.WriteLine("OK", Output.TextSuccess);
+            }
+            catch (Exception ex)
+            {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    Output.WriteLine($"Not Found: Download lastest version from https://ffmpeg.org/download.html#build-windows and put ffmpeg.exe to application's folder", Output.TextError);
+                }
+                else
+                {
+                    Output.WriteLine($"Not Found: Install ffmpeg, may be \"sudo apt-get install ffmpeg\"", Output.TextError);
+                }
+                //Output.WriteLine($"Error: {ex.Message}", Output.TextError);
+                return;
+            }
             
             try
             {
                 Output.Write("Loading model... ", Output.TextDefault);
-                model = new Model(Config.ModelName);
-                Output.WriteLine("OK", Output.TextSuccess);
+                if (!Directory.Exists(Config.ModelName))
+                {
+                    Output.WriteLine($"Model '{Config.ModelName}' Not Found: Download model from https://alphacephei.com/vosk/models and put model's folder to application's folder", Output.TextError);
+                    return;
+                }
+                else
+                {
+                    model = new Model(Config.ModelName);
+                    Output.WriteLine("OK", Output.TextSuccess);
+                }
+                
             }
             catch (Exception ex)
             {
