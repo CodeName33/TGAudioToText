@@ -22,29 +22,39 @@ namespace TGInstaAudioToText
 
     static class Config
     {
-        [ConfigDesc(Description = "Заголовок окна")]
+        [ConfigDesc(Description = "Window Title")]
         public static string Title = "TGInstaAudioToText";
 
-        [ConfigDesc(Description = "Папка модели VOSK-API")]
+        [ConfigDesc(Description = "Model folder VOSK-API")]
         public static string ModelName = "";
-        [ConfigDesc(Description = "Номер телефона Telegram")]
+        [ConfigDesc(Description = "Telegram Phone Number")]
         public static string TelegramPhone = "";
         [ConfigDesc(Description = "ApiId Telegram")]
         public static int TelegramApiId = 0;
         [ConfigDesc(Description = "ApiHash Telegram")]
         public static string TelegramApiHash = "";
 
-        [ConfigDesc(Description = "Имя пользователя Telegram (вроде как для F2A)")]
+        [ConfigDesc(Description = "Telegram User Name  (F2A?)")]
         public static string TelegramLoginName = "";
-        [ConfigDesc(Description = "Пароль Telegram (для F2A)")]
+        [ConfigDesc(Description = "Telegram Password (F2A)")]
         public static string TelegramPassword = "";
 
-        [ConfigDesc(Description = "Распознавать входящие голосовые в персональных чатах")]
+        [ConfigDesc(Description = "Recognize inbound voice messages in personal chats")]
         public static bool InPersonal = true;
-        [ConfigDesc(Description = "Распознавать исходящие голосовые в персональных чатах")]
+        [ConfigDesc(Description = "Recognize outbound voice messages in personal chats")]
         public static bool OutPersonal = true;
-        [ConfigDesc(Description = "Распознавать исходящие голосовые в общих чатах")]
+        [ConfigDesc(Description = "Recognize outbound voice messages in group chats")]
         public static bool OutGroup = true;
+
+        [ConfigDesc(Description = "Text for: Bot trying to recognize text")]
+        public static string TextBotTryingRecognize = "Бот пытается распознать текст";
+
+        [ConfigDesc(Description = "Text for: Bot recognized text")]
+        public static string TextBotRecognizedText = "Бот распознал текст";
+
+        [ConfigDesc(Description = "Text for: Bot did't recognized text")]
+        public static string TextBotDidntRecognizedText = "Бот не смог не распознать текст";
+        //
 
         public static void Load(string FileName)
         {
@@ -336,7 +346,7 @@ namespace TGInstaAudioToText
                                             {
                                                 if ((media.flags & MessageMediaDocument.Flags.voice) == MessageMediaDocument.Flags.voice)
                                                 {
-                                                    Output.WriteLine($"{Output.NewLineIfNeed}Message {msg} IsUserChat={IsUserChat}, IsSelf={IsSelf}", Output.TextInfo);
+                                                    //Output.WriteLine($"{Output.NewLineIfNeed}Message {msg} IsUserChat={IsUserChat}, IsSelf={IsSelf}", Output.TextInfo);
 
                                                     if (media.document is TL.Document doc)
                                                     {
@@ -370,7 +380,7 @@ namespace TGInstaAudioToText
 
                                                         if (inputPeer != null)
                                                         {
-                                                            var OutMsg = await client.SendMessageAsync(inputPeer, $"⏳ Бот пытается распознать текст...");
+                                                            var OutMsg = await client.SendMessageAsync(inputPeer, $"⏳ {Config.TextBotTryingRecognize}...");
 
 
                                                             try
@@ -379,7 +389,7 @@ namespace TGInstaAudioToText
                                                                 string Text = SpeechToText(model, WavFileName);
                                                                 Output.WriteLine("OK", Output.TextSuccess);
                                                                 Output.WriteLine($"Text: {Text}", Output.TextInfo);
-                                                                await client.Messages_EditMessage(inputPeer, OutMsg.ID, $"🤖 Бот распознал текст:\r\n\r\n{Text}");
+                                                                await client.Messages_EditMessage(inputPeer, OutMsg.ID, $"🤖 {Config.TextBotRecognizedText}:\r\n\r\n{Text}");
                                                                 await client.Messages_MarkDialogUnread(inputPeer);
 
                                                                 //File.Delete(tmpFileName);
@@ -390,7 +400,7 @@ namespace TGInstaAudioToText
                                                                 Output.WriteLine($"Error: {ex.Message}", Output.TextError);
                                                                 try
                                                                 {
-                                                                    await client.Messages_EditMessage(inputPeer, OutMsg.ID, $"🙁 Бот не смог не распознать текст ");
+                                                                    await client.Messages_EditMessage(inputPeer, OutMsg.ID, $"🙁 {Config.TextBotDidntRecognizedText}");
                                                                 }
                                                                 catch { }
                                                             }
