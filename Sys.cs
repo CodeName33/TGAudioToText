@@ -315,4 +315,51 @@ namespace TGInstaAudioToText
             return new JObject();
         }
     }
+
+    public static class Paths
+    {
+
+        public static string SlashAtEnd(string DirPath)
+        {
+            if (!DirPath.EndsWith(Path.DirectorySeparatorChar))
+            {
+                return DirPath + Path.DirectorySeparatorChar;
+            }
+            return DirPath;
+
+        }
+        public static bool IsRelative(string Path)
+        {
+            return !(Path.StartsWith('/') || Path.StartsWith('\\') || (Path.Length > 1 && Path[1] == ':') || Path.StartsWith("ftp:") || Path.StartsWith("http:") || Path.StartsWith("https:"));
+        }
+
+        public static string MakeRelative(string filePath, string referencePath)
+        {
+            var fileUri = new Uri(filePath);
+            var referenceUri = new Uri(SlashAtEnd(referencePath));
+            return Uri.UnescapeDataString(referenceUri.MakeRelativeUri(fileUri).ToString()).Replace('/', Path.DirectorySeparatorChar);
+        }
+        public static string ToRelative(string path)
+        {
+            if (!IsRelative(path))
+            {
+                return MakeRelative(path, Sys.GetAppPath());
+            }
+            return path;
+        }
+
+        public static string ToAbsolute(string path)
+        {
+            if (IsRelative(path))
+            {
+                return Path.Combine(Sys.GetAppPath(), path);
+            }
+            return path;
+        }
+
+        public static string RemoveSlahes(string FileName)
+        {
+            return FileName.Replace("|", "").Replace("/", "").Replace("\\", "");
+        }
+    }
 }

@@ -39,6 +39,11 @@ namespace TGInstaAudioToText
         [ConfigDesc(Description = "Telegram Password (F2A)")]
         public static string TelegramPassword = "";
 
+        [ConfigDesc(Description = "Enable punctuation")]
+        public static bool PunctuationEnabled = false;
+        [ConfigDesc(Description = "Python venv for punctuation")]
+        public static string PunctuationPuthonVenvPath = "";
+
         [ConfigDesc(Description = "Recognize inbound voice messages in personal chats")]
         public static bool InPersonal = true;
         [ConfigDesc(Description = "Recognize outbound voice messages in personal chats")]
@@ -248,6 +253,66 @@ namespace TGInstaAudioToText
             }
         }
 
+        static string PunctuateText(string Text)
+        {
+            if (Config.PunctuationEnabled)
+            {
+                string VenvPath = Paths.ToAbsolute(Config.PunctuationPuthonVenvPath);
+                StringBuilder SB = new StringBuilder();
+                string ScriptPath;
+                string Uid = $"_punktuation-{Guid.NewGuid()}";
+                string PythonScriptPath = Path.Combine(Sys.GetAppPath(), Uid + ".py");
+                string OutputPath = Path.Combine(Sys.GetAppPath(), Uid + ".txt");
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    ScriptPath = Path.Combine(Sys.GetAppPath(), Uid + ".cmd");
+                    string ActivatePath = Path.Combine(VenvPath, "scripts", "activate.bat");
+                    if (Config.PunctuationPuthonVenvPath.Length > 0)
+                    {
+                        SB.Append($"CALL \"{ActivatePath}\"\r\n");
+                    }
+                    SB.Append($"python \"{PythonScriptPath}\"\r\n");
+                }
+                else
+                {
+                    ScriptPath = Path.Combine(Sys.GetAppPath(), Uid + ".sh");
+                    string ActivatePath = Path.Combine(VenvPath, "bin", "activate");
+                    SB.Append($"#!/bin/bash -x\n");
+                    if (Config.PunctuationPuthonVenvPath.Length > 0)
+                    {
+                        SB.Append($"source \"{ActivatePath}\"\n");
+                    }
+                    SB.Append($"python3 \"{PythonScriptPath}\"\n");
+                }
+
+                File.WriteAllText(ScriptPath, SB.ToString());
+                File.WriteAllText(PythonScriptPath, $"from sbert_punc_case_ru import SbertPuncCase\r\nmodel = SbertPuncCase()\r\ntext = model.punctuate(\"{Text.Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " ")}\")\r\nwith open('{OutputPath.Replace("\\", "\\\\")}', 'w', encoding='utf-8') as f:\n    f.write(text)");
+
+                ProcessStartInfo PSI;
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    PSI = new ProcessStartInfo(ScriptPath);
+                }
+                else
+                {
+                    PSI = new ProcessStartInfo("bash", ScriptPath);
+                }
+                PSI.UseShellExecute = false;
+                PSI.CreateNoWindow = true;
+                var P = Process.Start(PSI);
+                P.WaitForExit();
+                if (File.Exists(OutputPath))
+                {
+                    Text = File.ReadAllText(OutputPath);
+                    File.Delete(OutputPath);
+
+                    File.Delete(ScriptPath);
+                    File.Delete(PythonScriptPath);
+                }
+            }
+            return Text;
+        }
+
         static void ConvertToWav(string SourceFileName, string TargetFileName)
         {
             //ProcessStartInfo PSI = new ProcessStartInfo(Path.Combine(Sys.GetAppPath(), "ffmpeg"), $"-i \"{SourceFileName}\" -acodec pcm_s16le -ac 1 -ar 16000 -y \"{TargetFileName}\"");
@@ -264,6 +329,10 @@ namespace TGInstaAudioToText
                     while (!P.StandardOutput.EndOfStream)
                     {
                         string V = P.StandardOutput.ReadLine();
+                        if (V == null)
+                        {
+                            break;
+                        }
                     }
                 }
                 catch { }
@@ -276,6 +345,10 @@ namespace TGInstaAudioToText
                     while (!P.StandardError.EndOfStream)
                     {
                         string V = P.StandardOutput.ReadLine();
+                        if (V == null)
+                        {
+                            break;
+                        }
                     }
                 }
                 catch { }
@@ -387,6 +460,10 @@ namespace TGInstaAudioToText
                                                             {
                                                                 Output.Write("Recognizing... ", Output.TextDefault);
                                                                 string Text = SpeechToText(model, WavFileName);
+                                                                if (Config.PunctuationEnabled)
+                                                                {
+                                                                    Text = PunctuateText(Text);
+                                                                }
                                                                 Output.WriteLine("OK", Output.TextSuccess);
                                                                 Output.WriteLine($"Text: {Text}", Output.TextInfo);
                                                                 await client.Messages_EditMessage(inputPeer, OutMsg.ID, $"🤖 {Config.TextBotRecognizedText}:\r\n\r\n{Text}");
@@ -523,6 +600,15 @@ namespace TGInstaAudioToText
             P.WaitForExit();
         }
 
+        static string ScriptExtension()
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return "cmd";
+            }
+            return "sh";
+        }
+
         static void Main(string[] args)
         {
             Config.Load(Sys.GetConfigFileName());
@@ -531,6 +617,27 @@ namespace TGInstaAudioToText
 
             WTelegram.Helpers.Log = (lvl, str) => { };
             Vosk.Vosk.SetLogLevel(-1);
+
+            if (Config.PunctuationEnabled)
+            {
+                try
+                {
+                    Output.Write("Checking Punctuation... ", Output.TextDefault);
+                    var SourceText = "Проверка пунктуации а потом еще одна но не долгая а так все хорошо возможно";
+                    var Text = PunctuateText(SourceText);
+                    if (Text == SourceText)
+                    {
+                        throw new Exception($"Failed run scripts");
+                    }
+                    Output.WriteLine("OK", Output.TextSuccess);
+                }
+                catch (Exception ex)
+                {
+                    Output.WriteLine($"Error: {ex.Message}. Run files '_punktuation-*.{ScriptExtension()}' in application's folder manual and find what's wrong or tutn off PunctuationEnabled option in cfg file", Output.TextError);
+                    //
+                    return;
+                }
+            }
 
             try
             {
