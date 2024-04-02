@@ -460,17 +460,21 @@ namespace TGInstaAudioToText
                                                             {
                                                                 Output.Write("Recognizing... ", Output.TextDefault);
                                                                 string Text = SpeechToText(model, WavFileName);
+                                                                Output.WriteLine("OK", Output.TextSuccess);
                                                                 if (Config.PunctuationEnabled)
                                                                 {
+                                                                    Output.Write("Punctuating... ", Output.TextDefault);
                                                                     Text = PunctuateText(Text);
+                                                                    Output.WriteLine("OK", Output.TextSuccess);
                                                                 }
-                                                                Output.WriteLine("OK", Output.TextSuccess);
+                                                                
                                                                 Output.WriteLine($"Text: {Text}", Output.TextInfo);
                                                                 await client.Messages_EditMessage(inputPeer, OutMsg.ID, $"🤖 {Config.TextBotRecognizedText}:\r\n\r\n{Text}");
                                                                 await client.Messages_MarkDialogUnread(inputPeer);
 
-                                                                //File.Delete(tmpFileName);
-                                                                //File.Delete(WavFileName);
+
+                                                                File.Delete(tmpFileName);
+                                                                File.Delete(WavFileName);
                                                             }
                                                             catch (Exception ex)
                                                             {
