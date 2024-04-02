@@ -19,3 +19,13 @@ Ths app runs on your server and connects to your telegram account using Telegram
    TelegramApiId - Telegram Api id and ApiHash (https://core.telegram.org/api/obtaining_api_id)
    TelegramApiHash
 6. Run app, at first time it will require confirmation code that will be sent to your telegram client. Enter it ant all done.
+
+# Punctuation
+In v1.1 EN/RU punctuation added from https://huggingface.co/kontur-ai/sbert_punc_case_ru using python
+
+To enable punctuation:
+1. Install lastest Python 3
+2. Change "PunctuationEnabled" parameter to True in TGAudioToText.cfg
+3. If you want to use virtual environment fill path to venv in "PunctuationPuthonVenvPath" parameter
+4. Install "pip install git+https://huggingface.co/kontur-ai/sbert_punc_case_ru" to your machine or venv
+5. Run TGAudioToText. At first run it will download some models so it takes some time.
