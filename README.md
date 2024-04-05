@@ -24,8 +24,9 @@ Ths app runs on your server and connects to your telegram account using Telegram
 In v1.1 EN/RU punctuation added from https://huggingface.co/kontur-ai/sbert_punc_case_ru using python
 
 To enable punctuation:
-1. Install lastest Python 3
+1. Install lastest Python 3 (For Linux VENV, PIP modules must be installed too)
 2. Change "PunctuationEnabled" parameter to True in TGAudioToText.cfg
-3. If you want to use virtual environment fill path to venv in "PunctuationPuthonVenvPath" parameter
-4. Install "pip install git+https://huggingface.co/kontur-ai/sbert_punc_case_ru" to your machine or venv
-5. Run TGAudioToText. At first run it will download some models so it takes some time.
+3. "PunctuationServer" parameter is already has default value http://127.0.0.1:8018/ for punctuation server default port
+4. In "punctuation" folder (in app's folder) run "punctuation-server-setup" (.cmd for Windows, .sh for Linux)
+5. If all is ok, start "punctuation-server" (.cmd for Windows, .sh for Linux)
+6. Run TGAudioToText not it can call punctuation server to punctuate text.
