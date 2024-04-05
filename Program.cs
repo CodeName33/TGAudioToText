@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 using System.Runtime.InteropServices;
+using System.Net.Http;
 
 namespace TGInstaAudioToText
 {
@@ -41,8 +42,11 @@ namespace TGInstaAudioToText
 
         [ConfigDesc(Description = "Enable punctuation")]
         public static bool PunctuationEnabled = false;
-        [ConfigDesc(Description = "Python venv for punctuation")]
-        public static string PunctuationPuthonVenvPath = "";
+        //[ConfigDesc(Description = "Python venv for punctuation")]
+        //public static string PunctuationPuthonVenvPath = "";
+        [ConfigDesc(Description = "Punctuation server")]
+        public static string PunctuationServer = "http://127.0.0.1:8018";
+
 
         [ConfigDesc(Description = "Recognize inbound voice messages in personal chats")]
         public static bool InPersonal = true;
@@ -253,6 +257,49 @@ namespace TGInstaAudioToText
             }
         }
 
+        static async Task<string> PunctuateTextWebServer(string Text)
+        {
+            var httpClient = new HttpClient(new HttpClientHandler
+            {
+                UseProxy = false
+            });
+
+            var data = new
+            {
+                text = Text,
+            };
+
+
+            string json = JsonConvert.SerializeObject(data);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            try
+            {
+                HttpResponseMessage response = await httpClient.PostAsync(Config.PunctuationServer, content);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    Output.WriteLine("Error: " + response.StatusCode, Output.TextError);
+                    httpClient.Dispose();
+                    return Text;
+                }
+
+                string result = await response.Content.ReadAsStringAsync();
+                dynamic jsonResponse = JsonConvert.DeserializeObject(result);
+                Text = jsonResponse.text;
+
+                //Console.WriteLine($"Server response: {jsonResponse}");
+            }
+            catch (Exception e)
+            {
+                Output.WriteLine($"Error: {e.Message}", Output.TextError);
+            }
+            finally
+            {
+                httpClient.Dispose();
+            }
+            return Text;
+        }
+        /*
         static string PunctuateText(string Text)
         {
             if (Config.PunctuationEnabled)
@@ -312,6 +359,7 @@ namespace TGInstaAudioToText
             }
             return Text;
         }
+        */
 
         static void ConvertToWav(string SourceFileName, string TargetFileName)
         {
@@ -464,7 +512,7 @@ namespace TGInstaAudioToText
                                                                 if (Config.PunctuationEnabled)
                                                                 {
                                                                     Output.Write("Punctuating... ", Output.TextDefault);
-                                                                    Text = PunctuateText(Text);
+                                                                    Text = await PunctuateTextWebServer(Text);
                                                                     Output.WriteLine("OK", Output.TextSuccess);
                                                                 }
                                                                 
@@ -622,6 +670,7 @@ namespace TGInstaAudioToText
             WTelegram.Helpers.Log = (lvl, str) => { };
             Vosk.Vosk.SetLogLevel(-1);
 
+            /*
             if (Config.PunctuationEnabled)
             {
                 try
@@ -642,6 +691,7 @@ namespace TGInstaAudioToText
                     return;
                 }
             }
+            */
 
             try
             {
