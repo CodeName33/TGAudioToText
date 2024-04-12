@@ -48,7 +48,7 @@ To enable punctuation:
 
     It will take a while. make a tea while you wait.
 
-3. Copy the example config file as `TGAudioToText.cfg` and modify it.
+3. Copy the example config file as `TGAudioToText.cfg` and modify it. Recommended to enable Puctuation, since its will be installed and running in the container with the main program.
 
 4. Create an empty `WTelegram.session`
 
@@ -58,7 +58,7 @@ To enable punctuation:
     docker run \
     -v ./[your model name from config]:/app/[your model name from config] \
     -v ./TGAudioToText.cfg:/app/tgaudio/TGAudioToText.cfg \
-    -v ./WTelegram_fux.session:/WTelegram.session \
+    -v ./WTelegram.session:/WTelegram.session \
     -it tgaudio2text sh -c "/app/tgaudio/TGAudioToText"
     ```
 
