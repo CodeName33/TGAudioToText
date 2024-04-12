@@ -55,6 +55,9 @@ namespace TGInstaAudioToText
         [ConfigDesc(Description = "Recognize outbound voice messages in group chats")]
         public static bool OutGroup = true;
 
+        [ConfigDesc(Description = "Chat IDs where function will not work")]
+        public static string Blacklist = "[]";
+
         [ConfigDesc(Description = "Text for: Bot trying to recognize text")]
         public static string TextBotTryingRecognize = "Бот пытается распознать текст";
 
@@ -409,6 +412,8 @@ namespace TGInstaAudioToText
         {
             string tmpPath = Path.Combine(Sys.GetAppPath(), "tmp");
             string dataPath = Path.Combine(Sys.GetAppPath(), "data");
+            List<int> ChatBlacklistArray = JsonConvert.DeserializeObject<List<int>>(Config.Blacklist);
+            Output.WriteLine($"Blocked Chats: {JsonConvert.SerializeObject(ChatBlacklistArray)}", Output.TextDefault);
 
             if (!Directory.Exists(tmpPath))
             {
@@ -456,6 +461,14 @@ namespace TGInstaAudioToText
                                     Enabled |= IsUserChat && IsSelf && Config.OutPersonal;
                                     Enabled |= IsUserChat && !IsSelf && Config.InPersonal;
                                     Enabled |= !IsUserChat && IsSelf && Config.OutGroup;
+
+                                    for (int i = 0; i < ChatBlacklistArray.Count; i++) {
+                                        if (ChatBlacklistArray[i] == msg.Peer.ID) {
+                                            Enabled = false;
+                                            Output.WriteLine($"blacklisted: {msg.Peer.ID}", Output.TextDefault);
+                                        }
+                                    }
+
 
                                     if (Enabled)
                                     {
