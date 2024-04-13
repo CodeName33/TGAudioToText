@@ -1,0 +1,48 @@
+#Window Title
+Title = TGInstaAudioToText
+
+#Model folder VOSK-API
+ModelName = 
+
+#Telegram Phone Number
+TelegramPhone = 
+
+#ApiId Telegram
+TelegramApiId = 0
+
+#ApiHash Telegram
+TelegramApiHash = 
+
+#Telegram User Name  (F2A?)
+TelegramLoginName = 
+
+#Telegram Password (F2A)
+TelegramPassword = 
+
+#Enable punctuation
+PunctuationEnabled = False
+
+#Punctuation server
+PunctuationServer = http://127.0.0.1:8018
+
+#Recognize inbound voice messages in personal chats
+InPersonal = True
+
+#Recognize outbound voice messages in personal chats
+OutPersonal = True
+
+#Recognize outbound voice messages in group chats
+OutGroup = True
+
+#Chat Blacklist
+Blacklist = []
+
+#Text for: Bot trying to recognize text
+TextBotTryingRecognize = Бот пытается распознать текст
+
+#Text for: Bot recognized text
+TextBotRecognizedText = Бот распознал текст
+
+#Text for: Bot did't recognized text
+TextBotDidntRecognizedText = Бот не смог не распознать текст
+
